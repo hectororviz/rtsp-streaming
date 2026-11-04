@@ -1,0 +1,24 @@
+# Prueba local E2E en tu Arch: MediaMTX + bridge.
+# Levanta un MediaMTX efimero y el puente publicando un loop de test.
+# Requiere: docker.
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    ports:
+      - "8554:8554"   # rtsp
+      - "8889:8889"   # hls
+      - "8888:8888"   # webrtc/http
+    command: []
+  bridge:
+    build: .
+    depends_on: [mediamtx]
+    network_mode: host
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+    environment:
+      BRIDGE_CONFIG: /config.yaml
+      BRIDGE_RTSP_URL: rtsp://mediamtx:8554/test-src
+      BRIDGE_ENDPOINT: rtsp://127.0.0.1:8554/live/test
+      BRIDGE_PUBLISH_PASSWORD: test
+    command: ["--config", "/config.yaml"]
+    restart: unless-stopped

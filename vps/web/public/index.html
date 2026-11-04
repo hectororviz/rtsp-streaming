@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Streaming Club</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    video { width: 100%; background: #000; border-radius: 8px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+    button { padding: .6rem 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Streaming del club (placeholder)</h1>
+  <p>Esta web sera reemplazada por React. Reproduce HLS desde <code id="hlsbase"></code>.</p>
+  <div id="matches"></div>
+  <video id="v" controls playsinline></video>
+  <script>
+    const API = "__API_BASE__";
+    document.getElementById("hlsbase").textContent = "__HLS_BASE__";
+    fetch(API + "/api/matches").then(r => r.json()).then(list => {
+      const box = document.getElementById("matches");
+      list.forEach(m => {
+        const d = document.createElement("div");
+        d.className = "card";
+        d.innerHTML = `<strong>${m.title}</strong> <span>(${m.status})</span><br/>`;
+        const b = document.createElement("button");
+        b.textContent = "Ver";
+        b.onclick = () => play(m.hlsUrl);
+        d.appendChild(b);
+        box.appendChild(d);
+      });
+    }).catch(e => document.getElementById("matches").textContent = "API no disponible: " + e);
+    function play(url) {
+      const v = document.getElementById("v");
+      if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; v.play(); }
+      else if (window.Hls && Hls.isSupported()) {
+        const h = new Hls(); h.loadSource(url); h.attachMedia(v); h.on(Hls.Events.MANIFEST_PARSED, () => v.play());
+      } else alert("HLS no soportado en este navegador");
+    }
+  </script>
+</body>
+</html>

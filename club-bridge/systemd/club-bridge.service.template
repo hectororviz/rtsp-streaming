@@ -1,0 +1,21 @@
+[Unit]
+Description=club-bridge: puente RTSP DVR -> VPS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# El binario no tiene nada hardcodeado: todo sale de este archivo + env.
+ExecStart=/usr/local/bin/club-bridge --config /etc/stream-bridge/config.yaml
+Restart=always
+RestartSec=5
+# Password y overrides sensibles por EnvironmentFile (permisos 600).
+EnvironmentFile=-/etc/stream-bridge/bridge.env
+# Usuario dedicado si existe (install.sh lo crea); si no, root igual anda.
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=club-bridge
+
+[Install]
+WantedBy=multi-user.target

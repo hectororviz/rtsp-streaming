@@ -1,0 +1,102 @@
+# VPS streaming — todo dockerizado detras de caddy-docker-proxy (red caddy_net).
+# El proxy (fuera de este compose) publica HTTPS automatico por labels.
+# Dominios:
+#   web: streaming.csdsoler.com.ar
+#   api: api.streaming.csdsoler.com.ar
+#   hls: hls.streaming.csdsoler.com.ar
+name: streaming
+
+networks:
+  caddy_net:
+    external: true
+  backend:
+  streamnet:
+
+volumes:
+  pgdata:
+  wgconfig:
+
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: streaming-wireguard
+    cap_add: [NET_ADMIN]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv4.conf.all.src_valid_mark: "1"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Argentina/Buenos_Aires
+    volumes:
+      - ./wireguard/config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp" # unico puerto publico entrante del VPS
+    networks: [streamnet]
+    restart: unless-stopped
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: streaming-mediamtx
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    networks:
+      caddy_net: {}
+      streamnet: {}
+    labels:
+      caddy: hls.streaming.csdsoler.com.ar
+      caddy.reverse_proxy: "{{upstreams 8889}}"
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: streaming-db
+    env_file: [.env]
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-streaming}
+      - POSTGRES_USER=${POSTGRES_USER:-streaming}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?setear en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: ./api
+    image: ${API_IMAGE:-ghcr.io/hectororviz/rtsp-streaming-api:latest}
+    container_name: streaming-api
+    env_file: [.env]
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://${POSTGRES_USER:-streaming}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-streaming}
+      - HLS_BASE=https://hls.streaming.csdsoler.com.ar
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN:-}
+    depends_on:
+      db: { condition: service_healthy }
+    networks:
+      caddy_net: {}
+      backend: {}
+    labels:
+      caddy: api.streaming.csdsoler.com.ar
+      caddy.reverse_proxy: "{{upstreams 3000}}"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        API_BASE: https://api.streaming.csdsoler.com.ar
+        HLS_BASE: https://hls.streaming.csdsoler.com.ar
+    image: ${WEB_IMAGE:-ghcr.io/hectororviz/rtsp-streaming-web:latest}
+    container_name: streaming-web
+    networks:
+      caddy_net: {}
+    labels:
+      caddy: streaming.csdsoler.com.ar
+      caddy.reverse_proxy: "{{upstreams 80}}"
+    restart: unless-stopped

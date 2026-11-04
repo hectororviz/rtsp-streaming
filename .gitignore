@@ -1,0 +1,11 @@
+# Binarios y build
+club-bridge/club-bridge
+vps/api/node_modules/
+
+# Entornos y secretos (nunca commitear reales)
+vps/.env
+vps/wireguard/config/
+*.key
+
+# Docs locales
+/tmp/

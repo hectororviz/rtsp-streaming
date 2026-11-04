@@ -1,0 +1,19 @@
+# Config local de desarrollo (tu Arch). Apunta a un MediaMTX de prueba.
+# En prod se usa /etc/stream-bridge/config.yaml via install.sh.
+input:
+  rtsp_url: "rtsp://127.0.0.1:8555/test"
+  transport: tcp
+  timeout_sec: 10
+output:
+  endpoint: "rtsp://127.0.0.1:8554/live/test"
+  publish_user: "club1"
+  publish_password_env: "BRIDGE_PUBLISH_PASSWORD"
+  copy_codec: true
+  extra_ffmpeg_args: []
+supervision:
+  restart_delay_sec: 3
+  max_retries: 0
+health:
+  enabled: true
+  port: 8081
+log_level: info

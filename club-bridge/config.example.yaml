@@ -1,0 +1,31 @@
+# club-bridge — config de ejemplo.
+# Copia a config.yaml (dev) o /etc/stream-bridge/config.yaml (prod) y edita.
+# Todo puede sobreescribirse por env (ver README). Password NUNCA aca.
+
+input:
+  # URL RTSP del DVR. Ejemplos:
+  #   rtsp://usuario:clave@192.168.1.10:554/Streaming/Channels/101
+  #   rtsp://192.168.1.10:554/cam/realmonitor?channel=1&subtype=0
+  rtsp_url: "rtsp://192.168.1.10:554/cam"
+  transport: tcp        # tcp (recomendado) | udp
+  timeout_sec: 10       # 1-120
+
+output:
+  # Donde publica hacia MediaMTX en el VPS (via WireGuard).
+  # El path define el stream: rtsp://<vps>:8554/live/<stream-key>
+  endpoint: "rtsp://10.8.0.1:8554/live/partido1"
+  publish_user: "club1"
+  # Nombre del env que trae el password (no lo pongas en este archivo).
+  publish_password_env: "BRIDGE_PUBLISH_PASSWORD"
+  copy_codec: true      # true = sin recodificar (ideal). false + extra args para transcode.
+  extra_ffmpeg_args: [] # ej: ["-bufsize", "2M"]
+
+supervision:
+  restart_delay_sec: 5
+  max_retries: 0        # 0 = infinito (recomendado en el club)
+
+health:
+  enabled: true
+  port: 8081
+
+log_level: info         # debug|info|warn|error

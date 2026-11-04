@@ -1,0 +1,40 @@
+# MediaMTX — recibe UNA senal del puente (via WireGuard) y la sirve en HLS.
+# El puente publica: rtsp://<user>:<pass>@mediamtx:8554/live/<stream-key>
+# Espectadores: https://hls.streaming.csdsoler.com.ar/live/<stream-key>/index.m3u8 (via caddy)
+logLevel: info
+
+api: yes
+apiAddress: :9997
+
+rtsp: yes
+rtspAddress: :8554
+# Solo aceptamos publicacion desde la red WireGuard / docker interna.
+# (El firewall real lo pone WireGuard + no publicar puertos RTSP en el compose.)
+
+hls: yes
+hlsAddress: :8889
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+webrtc: yes
+webrtcAddress: :8888
+# WebRTC se expone en v2 (rtc.streaming.csdsoler.com.ar). v1 = HLS.
+
+# Usuarios internos: el puente publica, el mundo solo lee.
+authInternalUsers:
+  - user: club1
+    # CAMBIAR en prod. Debe coincidir con BRIDGE_PUBLISH_PASSWORD del club.
+    pass: "cambiar-esto"
+    ips: []
+    permissions: [publish, read]
+  - user: any
+    pass: any
+    ips: []
+    permissions: [read]
+
+# Un path por partido: live/partido1, live/partido2, ...
+paths:
+  "~^live/.+$":
+    source: publisher

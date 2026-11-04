@@ -1,0 +1,15 @@
+# Ejemplo WireGuard lado VPS (linuxserver/wireguard espera config/wg0.conf).
+# Copiar a vps/wireguard/config/wg0.conf en el VPS (NO commitear el real) y
+# generar el peer del club con: docker exec -it wireguard wg genkey | tee peer.key | wg pubkey
+[Interface]
+Address = 10.8.0.1/24
+ListenPort = 51820
+PrivateKey = CAMBIAR_PRIVADA_VPS
+# NAT para que el puente alcance mediamtx por nombre de servicio docker:
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+# Peer = PC del club (el puente publica por este tunel, nada entra al club)
+[Peer]
+PublicKey = CAMBIAR_PUBLICA_CLUB
+AllowedIPs = 10.8.0.2/32
