@@ -1,8 +1,8 @@
 {
   "name": "streaming-api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "API streaming CSD Soler: partidos, acceso por PIN, admin. Base para Mercado Pago.",
+  "description": "API streaming: partidos, acceso por PIN, admin y personalización. Base para Mercado Pago.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"

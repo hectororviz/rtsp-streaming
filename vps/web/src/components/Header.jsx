@@ -1,3 +1,5 @@
+import { useBrand } from "../settings";
+
 export function Shield() {
   return (
     <svg width="30" height="36" viewBox="0 0 30 36" aria-hidden="true" focusable="false">
@@ -7,11 +9,40 @@ export function Shield() {
         stroke="#f2f4f5"
         strokeWidth="2"
       />
-      <path d="M15 5.5 23.5 9v7.3c0 5.6-3.6 10-8.5 13.7-4.9-3.7-8.5-8.1-8.5-13.7V9L15 5.5Z" fill="#c4161c" />
+      <path d="M15 5.5 23.5 9v7.3c0 5.6-3.6 10-8.5 13.7-4.9-3.7-8.5-8.1-8.5-13.7V9L15 5.5Z" fill="var(--brand, #c4161c)" />
       <text x="15" y="19" textAnchor="middle" fontSize="9" fontWeight="800" fill="#fff" fontFamily="system-ui">
         CS
       </text>
     </svg>
+  );
+}
+
+export function BrandShield({ size = 30 }) {
+  const { brand } = useBrand();
+  if (brand.shield) {
+    return (
+      <img
+        src={brand.shield}
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={Math.round((size * 36) / 30)}
+        className="brand-shield"
+      />
+    );
+  }
+  return <Shield />;
+}
+
+export function BrandName() {
+  const { brand } = useBrand();
+  const words = brand.site_name.trim().split(/\s+/);
+  const last = words.pop();
+  return (
+    <span className="brand-name">
+      {words.length > 0 && <>{words.join(" ").toUpperCase()} </>}
+      <span className="tv">{last.toUpperCase()}</span>
+    </span>
   );
 }
 
@@ -25,6 +56,7 @@ export function LiveBadge() {
 }
 
 export default function Header({ variant, onNav }) {
+  const { brand } = useBrand();
   const isVivo = variant === "vivo";
   const label = isVivo ? "Inicio" : "Ver en vivo";
   const href = isVivo ? "/" : "/vivo";
@@ -46,12 +78,10 @@ export default function Header({ variant, onNav }) {
               e.preventDefault();
               onNav("/");
             }}
-            aria-label="CSD Soler TV - inicio"
+            aria-label={`${brand.site_name} - inicio`}
           >
-            <Shield />
-            <span className="brand-name">
-              CSD SOLER <span className="tv">TV</span>
-            </span>
+            <BrandShield />
+            <BrandName />
           </a>
           <a className={cls} href={href} onClick={go}>
             {label}

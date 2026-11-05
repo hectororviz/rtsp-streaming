@@ -1,5 +1,8 @@
-// API streaming CSD Soler v0.2: partidos + acceso por PIN + backoffice.
+// API streaming v0.3: partidos + acceso por PIN + backoffice + personalización.
 // Contrato estable para la fase Mercado Pago (solo cambia el metodo de acceso).
+// Validez: el acceso (PIN o compra) vale por el día del partido (fin del día,
+// America/Argentina), no solo hasta ends_at. El PIN se guarda en texto plano:
+// es un código compartido por evento y el admin debe verlo siempre.
 const crypto = require("crypto");
 const express = require("express");
 const { Pool } = require("pg");
@@ -54,6 +57,33 @@ function setGrantCookie(res, token) {
 }
 const sha256 = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 
+// PIN de 6 dígitos, autogenerado al crear la fecha si el admin no lo indica.
+const genPin = () => String(crypto.randomInt(100000, 1000000));
+
+// Fin del día del partido (America/Argentina, -03:00 fijo sin DST):
+// el acceso vale por ese día aunque el partido termine antes.
+function endOfDayAR(d) {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = Object.fromEntries(dtf.formatToParts(new Date(d)).map((p) => [p.type, p.value]));
+  return new Date(`${parts.year}-${parts.month}-${parts.day}T23:59:59.999-03:00`);
+}
+
+const DEFAULT_SETTINGS = {
+  site_name: "CSD Soler TV",
+  tagline: "Partidos en vivo del club",
+  shield: null,
+  color_primary: "#c4161c",
+  color_secondary: "#0a8f3c",
+};
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const SHIELD_PREFIX = /^data:image\/(png|jpeg|webp|svg\+xml);base64,/;
+const SHIELD_MAX_CHARS = 700 * 1024; // ~512KB binarios en base64
+
 function windowStatus(m, now = new Date()) {
   const s = new Date(m.starts_at);
   const e = new Date(m.ends_at);
@@ -90,7 +120,25 @@ async function initDb() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_grants_match ON grants(match_id);
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      site_name TEXT NOT NULL DEFAULT 'CSD Soler TV',
+      tagline TEXT NOT NULL DEFAULT 'Partidos en vivo del club',
+      shield TEXT,
+      color_primary TEXT NOT NULL DEFAULT '#c4161c',
+      color_secondary TEXT NOT NULL DEFAULT '#0a8f3c',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    ALTER TABLE matches ADD COLUMN IF NOT EXISTS pin TEXT;
   `);
+  await pool.query(
+    `UPDATE matches SET pin = (100000 + floor(random() * 900000))::int::text WHERE pin IS NULL`
+  );
+  await pool.query(
+    `INSERT INTO site_settings (id, site_name, tagline, shield, color_primary, color_secondary)
+     VALUES (1, $1, $2, NULL, $3, $4) ON CONFLICT (id) DO NOTHING`,
+    [DEFAULT_SETTINGS.site_name, DEFAULT_SETTINGS.tagline, DEFAULT_SETTINGS.color_primary, DEFAULT_SETTINGS.color_secondary]
+  );
   const { rows } = await pool.query("SELECT COUNT(*)::int AS n FROM matches");
   if (rows[0].n === 0) {
     await pool.query(
@@ -102,7 +150,17 @@ async function initDb() {
   }
 }
 
-app.get("/healthz", (_req, res) => res.json({ status: "ok", service: "streaming-api", version: "0.2.0" }));
+app.get("/healthz", (_req, res) => res.json({ status: "ok", service: "streaming-api", version: "0.3.0" }));
+
+// ---- Personalización (pública, solo lectura) ----
+app.get("/api/settings", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT site_name, tagline, shield, color_primary, color_secondary FROM site_settings WHERE id = 1");
+    res.json(rows[0] || DEFAULT_SETTINGS);
+  } catch (e) {
+    res.status(500).json({ error: "db error" });
+  }
+});
 
 // ---- Publico ----
 app.get("/api/matches", async (_req, res) => {
@@ -135,12 +193,13 @@ app.post("/api/access", async (req, res) => {
     const { rows } = await pool.query("SELECT * FROM matches WHERE id = $1", [matchId]);
     const m = rows[0];
     if (!m) return res.status(404).json({ error: "partido inexistente" });
-    if (sha256(pin) !== m.pin_hash) return res.status(403).json({ error: "PIN incorrecto" });
+    const ok = m.pin ? String(pin) === String(m.pin) : sha256(pin) === m.pin_hash;
+    if (!ok) return res.status(403).json({ error: "PIN incorrecto" });
     const token = crypto.randomBytes(24).toString("hex");
     await pool.query("INSERT INTO grants (token, match_id, expires_at) VALUES ($1, $2, $3)", [
       token,
       m.id,
-      m.ends_at,
+      endOfDayAR(m.starts_at),
     ]);
     setGrantCookie(res, token);
     res.json({ ok: true, match: publicMatch(m), token });
@@ -191,23 +250,74 @@ function requireAdmin(req, res, next) {
   if (req.headers["x-admin-token"] !== ADMIN_TOKEN) return res.status(401).json({ error: "admin no autorizado" });
   next();
 }
+app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
+  const { rows } = await pool.query("SELECT site_name, tagline, shield, color_primary, color_secondary FROM site_settings WHERE id = 1");
+  res.json(rows[0] || DEFAULT_SETTINGS);
+});
+app.put("/api/admin/settings", requireAdmin, async (req, res) => {
+  const { site_name, tagline, shield, color_primary, color_secondary } = req.body || {};
+  if (site_name !== undefined && (typeof site_name !== "string" || !site_name.trim() || site_name.trim().length > 60))
+    return res.status(400).json({ error: "site_name inválido (1-60 caracteres)" });
+  if (tagline !== undefined && (typeof tagline !== "string" || tagline.length > 120))
+    return res.status(400).json({ error: "tagline inválido (máx 120 caracteres)" });
+  if (color_primary !== undefined && !HEX_COLOR.test(color_primary))
+    return res.status(400).json({ error: "color_primary inválido (formato #rrggbb)" });
+  if (color_secondary !== undefined && !HEX_COLOR.test(color_secondary))
+    return res.status(400).json({ error: "color_secondary inválido (formato #rrggbb)" });
+  if (shield !== undefined && shield !== null) {
+    if (typeof shield !== "string" || !SHIELD_PREFIX.test(shield))
+      return res.status(400).json({ error: "escudo inválido (PNG/JPG/WebP/SVG en base64)" });
+    if (shield.length > SHIELD_MAX_CHARS)
+      return res.status(400).json({ error: "escudo muy pesado (máx ~512KB)" });
+  }
+  const sets = [];
+  const vals = [];
+  if (site_name !== undefined) {
+    vals.push(site_name.trim());
+    sets.push(`site_name = $${vals.length}`);
+  }
+  if (tagline !== undefined) {
+    vals.push(tagline);
+    sets.push(`tagline = $${vals.length}`);
+  }
+  if (shield !== undefined) {
+    vals.push(shield);
+    sets.push(`shield = $${vals.length}`);
+  }
+  if (color_primary !== undefined) {
+    vals.push(color_primary);
+    sets.push(`color_primary = $${vals.length}`);
+  }
+  if (color_secondary !== undefined) {
+    vals.push(color_secondary);
+    sets.push(`color_secondary = $${vals.length}`);
+  }
+  if (!sets.length) return res.status(400).json({ error: "nada para actualizar" });
+  const { rows } = await pool.query(
+    `UPDATE site_settings SET ${sets.join(", ")}, updated_at = now() WHERE id = 1
+     RETURNING site_name, tagline, shield, color_primary, color_secondary`,
+    vals
+  );
+  res.json(rows[0]);
+});
 app.get("/api/admin/matches", requireAdmin, async (_req, res) => {
-  const { rows } = await pool.query("SELECT id,title,rival,starts_at,ends_at,stream_key,created_at FROM matches ORDER BY starts_at DESC");
+  const { rows } = await pool.query("SELECT id,title,rival,starts_at,ends_at,stream_key,pin,created_at FROM matches ORDER BY starts_at DESC");
   res.json(rows.map((m) => ({ ...m, status: windowStatus(m) })));
 });
 app.post("/api/admin/matches", requireAdmin, async (req, res) => {
   const { title, rival, starts_at, ends_at, stream_key, pin } = req.body || {};
-  if (!rival || !starts_at || !ends_at || !stream_key || !pin)
-    return res.status(400).json({ error: "rival, starts_at, ends_at, stream_key y pin requeridos" });
+  if (!rival || !starts_at || !ends_at || !stream_key)
+    return res.status(400).json({ error: "rival, starts_at, ends_at y stream_key requeridos" });
+  const finalPin = (pin || "").trim() || genPin();
   const { rows } = await pool.query(
-    `INSERT INTO matches (title, rival, starts_at, ends_at, stream_key, pin_hash)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING id,title,rival,starts_at,ends_at,stream_key,created_at`,
-    [title || `CSD Soler vs ${rival}`, rival, starts_at, ends_at, stream_key, sha256(pin)]
+    `INSERT INTO matches (title, rival, starts_at, ends_at, stream_key, pin_hash, pin)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,title,rival,starts_at,ends_at,stream_key,pin,created_at`,
+    [title || `CSD Soler vs ${rival}`, rival, starts_at, ends_at, stream_key, sha256(finalPin), finalPin]
   );
   res.status(201).json(rows[0]);
 });
 app.patch("/api/admin/matches/:id", requireAdmin, async (req, res) => {
-  const allowed = ["title", "rival", "starts_at", "ends_at", "stream_key"];
+  const allowed = ["title", "rival", "starts_at", "ends_at", "stream_key", "pin"];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -224,7 +334,7 @@ app.patch("/api/admin/matches/:id", requireAdmin, async (req, res) => {
   vals.push(req.params.id);
   const { rows } = await pool.query(
     `UPDATE matches SET ${sets.join(", ")} WHERE id = $${vals.length}
-     RETURNING id,title,rival,starts_at,ends_at,stream_key,created_at`,
+     RETURNING id,title,rival,starts_at,ends_at,stream_key,pin,created_at`,
     vals
   );
   if (!rows[0]) return res.status(404).json({ error: "partido inexistente" });
