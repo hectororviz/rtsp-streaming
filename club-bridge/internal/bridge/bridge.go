@@ -61,6 +61,9 @@ func BuildArgs(c *config.Config) []string {
 		args = append(args, "-c", "copy")
 	}
 	args = append(args, c.Output.ExtraFFmpegArgs...)
+	// El output RTSP debe ir por TCP interleaved: el VPS solo expone
+	// 10.8.0.1:8554/TCP por el tunel (sin forwarding UDP).
+	args = append(args, "-rtsp_transport", "tcp")
 	args = append(args, "-f", "rtsp", c.PublishURL())
 	return args
 }
