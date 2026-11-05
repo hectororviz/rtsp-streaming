@@ -6,6 +6,7 @@ vps/web/dist/
 
 # Entornos y secretos (nunca commitear reales)
 vps/.env
+vps/mediamtx/mediamtx.yml
 vps/wireguard/config/
 *.key
 

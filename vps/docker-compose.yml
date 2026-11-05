@@ -11,6 +11,9 @@ networks:
     external: true
   backend:
   streamnet:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
 
 volumes:
   pgdata:
@@ -43,10 +46,11 @@ services:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     networks:
       caddy_net: {}
-      streamnet: {}
+      streamnet:
+        ipv4_address: 172.30.0.10
     labels:
       caddy: hls.streaming.csdsoler.com.ar
-      caddy.reverse_proxy: "{{upstreams 8889}}"
+      caddy.reverse_proxy: "{{upstreams 8888}}"
     restart: unless-stopped
 
   db:

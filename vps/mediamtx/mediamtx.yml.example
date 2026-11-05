@@ -1,0 +1,37 @@
+# MediaMTX — plantilla. Copiar a mediamtx.yml y poner la password real:
+#   cp mediamtx.yml.example mediamtx.yml   # completar pass de club1
+# El puente publica: rtsp://club1:<pass>@mediamtx:8554/live/<stream-key>
+# Espectadores: https://hls.streaming.csdsoler.com.ar/live/<stream-key>/index.m3u8
+
+logLevel: info
+# Tolerancia a microcortes del uplink del club (default 10s mataba el publish).
+readTimeout: 60s
+writeTimeout: 10s
+api: true
+apiAddress: :9997
+rtsp: true
+rtspAddress: :8554
+hls: true
+hlsAddress: :8888
+hlsVariant: fmp4
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+webrtc: true
+webrtcAddress: :8889
+authInternalUsers:
+  - user: club1
+    pass: "cambiar-esto"  # = BRIDGE_PUBLISH_PASSWORD del club (nunca commitear la real)
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+  - user: any
+    ips: []
+    permissions:
+      - action: read
+      - action: playback
+paths:
+  "~^live/.+$":
+    source: publisher

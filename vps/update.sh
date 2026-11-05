@@ -34,6 +34,13 @@ fi
 
 cd "$ROOT/vps"
 
+# El yml real (con password) vive solo en el VPS, nunca en git.
+if [ ! -f mediamtx/mediamtx.yml ]; then
+  echo "!! Falta mediamtx/mediamtx.yml (está ignorado en git). Crealo desde la plantilla:"
+  echo "   cp mediamtx/mediamtx.yml.example mediamtx/mediamtx.yml  # y poné la password real"
+  exit 1
+fi
+
 echo "==> docker compose pull"
 docker compose pull
 
