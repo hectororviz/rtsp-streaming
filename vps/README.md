@@ -9,19 +9,31 @@
 
 ## Demo con acceso + backoffice
 
-La web (`streaming.csdsoler.com.ar`) es el portal: landing `/` (qué es,
-cómo ver, CTA) + partido en vivo en `/vivo` (alias `/partido` redirige).
-`/vivo` exige acceso: sin cookie válida muestra la caja de acceso
-(hoy PIN temporal vía `PinForm`, mañana checkout de Mercado Pago sin
-cambiar el layout). El backoffice está en `/admin` (token `ADMIN_TOKEN`
-del `.env`): crear/editar partidos (rival, inicio/fin, stream-key, PIN) y
-preview del HLS. La API solo entrega la URL del stream con cookie de acceso
-válida y dentro de la ventana `[starts_at, ends_at]`; fuera de ella el player
-muestra "todavía no empezó" o "finalizada". Mercado Pago reutiliza este mismo
-contrato (solo cambia el método de acceso).
+La web es el portal: landing `/` (info, próximo partido, CTA) + partido en vivo
+en `/vivo` (alias `/partido` redirige). `/vivo` exige acceso: sin cookie válida
+muestra la caja de acceso. En el home, "Ver en vivo" abre un modal con dos
+pestañas: PIN funcional y Mercado Pago (pendiente, placeholder). El PIN y la
+compra son válidos por el día del partido (el grant expira a las 23:59 de
+America/Argentina del día del partido).
+
+El backoffice está en `/admin` (token `ADMIN_TOKEN` del `.env`) con dos
+pestañas:
+
+- **Partidos**: crear fechas (rival, inicio/fin, stream-key). El PIN se genera
+  solo al crear, se muestra siempre en la tabla y se puede regenerar.
+- **Personalización**: nombre del sitio, descripción, escudo (PNG/JPG/WebP/SVG
+  ≤ 512KB) y colores primario/secundario. Se sirve en `GET /api/settings` y la
+  web lo aplica en vivo (header, título, favicon, acentos).
 
 Player: `hls.js` (`lowLatencyMode`) + fallback nativo Safari, sin escudo
 superpuesto en el front (lo agrega el servidor en el stream).
+
+## Endpoints de personalización
+
+- `GET /api/settings` → `{ site_name, tagline, shield, color_primary, color_secondary }` (público).
+- `PUT /api/admin/settings` (header `x-admin-token`) → actualiza parcial;
+  valida nombre (1-60), tagline (≤120), colores `#rrggbb` y escudo data-URL
+  (PNG/JPG/WebP/SVG ≤ ~512KB).
 
 ## Web UI / maquetación
 

@@ -1,8 +1,8 @@
 {
   "name": "streaming-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Web CSD Soler TV: landing + PIN + player HLS + backoffice.",
+  "description": "Web del club: landing + modal de acceso (PIN/MP) + player HLS + backoffice con personalización.",
   "type": "module",
   "scripts": {
     "dev": "vite",

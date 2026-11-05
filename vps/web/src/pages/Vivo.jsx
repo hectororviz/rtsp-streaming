@@ -3,6 +3,7 @@ import Header, { LiveBadge } from "../components/Header";
 import PinForm from "../components/PinForm";
 import Player from "../Player";
 import { api, fmtDate } from "../api";
+import { useBrand } from "../settings";
 
 function useCountdown(targetIso) {
   const [now, setNow] = useState(Date.now());
@@ -19,6 +20,7 @@ function useCountdown(targetIso) {
 }
 
 export default function Vivo({ onNav }) {
+  const { brand } = useBrand();
   const [match, setMatch] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -180,7 +182,7 @@ export default function Vivo({ onNav }) {
           match && <PinForm matchId={match.id} busy={busy} onSubmit={submitPin} />
         )}
       </main>
-      <footer className="footer">CSD Soler TV · Transmisión oficial del club</footer>
+      <footer className="footer">{brand.site_name} · Transmisión oficial del club</footer>
     </div>
   );
 }

@@ -1,6 +1,9 @@
+import { useState } from "react";
 import Header, { LiveBadge } from "../components/Header";
-import { fmtDate } from "../api";
+import AccessModal from "../components/AccessModal";
+import { api, fmtDate } from "../api";
 import { useCurrentMatch } from "../match";
+import { useBrand } from "../settings";
 
 function TicketIcon() {
   return (
@@ -28,13 +31,30 @@ function PlayIcon() {
 }
 
 export default function Landing({ onNav }) {
+  const { brand } = useBrand();
   const { match, error } = useCurrentMatch();
-  const title = match ? match.title : "CSD Soler vs Rival a definir";
+  const [modalOpen, setModalOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const title = match ? match.title : `${brand.site_name} vs Rival a definir`;
   const date = match ? fmtDate(match.starts_at) : "";
 
-  function goVivo(ev) {
+  function openAccess(ev) {
     if (ev) ev.preventDefault();
-    onNav("/vivo");
+    if (match) setModalOpen(true);
+    else onNav("/vivo");
+  }
+
+  async function submitPin(pin) {
+    if (!match || busy) return;
+    setBusy(true);
+    try {
+      await api.access(match.id, pin);
+      setModalOpen(false);
+      onNav("/vivo");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -47,21 +67,48 @@ export default function Landing({ onNav }) {
             {date ? <span className="date-muted">{date}</span> : null}
           </div>
           <h1>{title}</h1>
-          <p className="hero-sub">Partidos en vivo del club</p>
-          <a className="cta" href="/vivo" onClick={goVivo}>
-            ▶ Ver el partido
-          </a>
-          <a className="preview" href="/vivo" onClick={goVivo} aria-label="Ver el partido en vivo">
+          <p className="hero-sub">{brand.tagline}</p>
+
+          {match ? (
+            <div className="match-card">
+              <div className="match-card__info">
+                <span className="match-card__rival">vs {match.rival}</span>
+                <span className="date-muted">{date}</span>
+              </div>
+              <button className="cta" type="button" onClick={openAccess}>
+                ▶ Ver en vivo
+              </button>
+            </div>
+          ) : (
+            <button className="cta" type="button" onClick={openAccess} disabled={!match && !error}>
+              ▶ Ver en vivo
+            </button>
+          )}
+
+          <button
+            className="preview preview--field"
+            type="button"
+            onClick={openAccess}
+            aria-label="Ver el partido en vivo"
+          >
             <span className="preview__badge">
               <LiveBadge />
             </span>
             <span className="preview__play" aria-hidden="true">
               ▶
             </span>
-          </a>
+          </button>
         </section>
 
         {error && <div className="alert">{error}</div>}
+
+        <section className="info-sec" aria-labelledby="info-title">
+          <h2 id="info-title">La transmisión oficial del club</h2>
+          <p>
+            Mirá los partidos en vivo desde donde estés: tu celu, tu compu o tu TV.
+            El acceso se habilita para el día del partido, con tu PIN o con tu compra.
+          </p>
+        </section>
 
         <section className="steps-sec" aria-labelledby="how-title">
           <h2 id="how-title">Cómo ver el partido</h2>
@@ -70,7 +117,7 @@ export default function Landing({ onNav }) {
               <span className="step__num" aria-hidden="true">1</span>
               <div className="step__body">
                 <TicketIcon />
-                <p>Conseguí tu acceso con el club.</p>
+                <p>Conseguí tu acceso con el club: PIN o compra del día.</p>
               </div>
             </div>
             <div className="step">
@@ -89,8 +136,30 @@ export default function Landing({ onNav }) {
             </div>
           </div>
         </section>
+
+        <section className="info-sec" aria-labelledby="faq-title">
+          <h2 id="faq-title">Preguntas frecuentes</h2>
+          <div className="faq">
+            <details>
+              <summary>¿Cuánto dura mi acceso?</summary>
+              <p>El acceso (PIN o compra) es válido por el día del partido.</p>
+            </details>
+            <details>
+              <summary>¿Dónde consigo mi PIN?</summary>
+              <p>El club genera un PIN por fecha y te lo comparte por sus canales.</p>
+            </details>
+            <details>
+              <summary>¿Puedo verlo en el televisor?</summary>
+              <p>Sí: abrí el sitio en el navegador de tu Smart TV y usá pantalla completa.</p>
+            </details>
+          </div>
+        </section>
       </main>
-      <footer className="footer">CSD Soler TV · Transmisión oficial del club</footer>
+      <footer className="footer">{brand.site_name} · Transmisión oficial del club</footer>
+
+      {modalOpen && match && (
+        <AccessModal match={match} busy={busy} onSubmit={submitPin} onClose={() => setModalOpen(false)} />
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ async function req(path, opts = {}) {
 export const api = {
   current: () => req("/api/matches/current"),
   list: () => req("/api/matches"),
+  settings: () => req("/api/settings"),
   access: (matchId, pin) =>
     req("/api/access", { method: "POST", body: JSON.stringify({ matchId, pin }) }),
   me: (matchId) => req(`/api/me?matchId=${matchId}`),
@@ -25,6 +26,9 @@ export const api = {
     req(`/api/admin/matches/${id}`, { method: "PATCH", headers: { "x-admin-token": token }, body: JSON.stringify(data) }),
   adminDelete: (token, id) =>
     req(`/api/admin/matches/${id}`, { method: "DELETE", headers: { "x-admin-token": token } }),
+  adminGetSettings: (token) => req("/api/admin/settings", { headers: { "x-admin-token": token } }),
+  adminUpdateSettings: (token, data) =>
+    req("/api/admin/settings", { method: "PUT", headers: { "x-admin-token": token }, body: JSON.stringify(data) }),
 };
 
 export function fmtDate(iso) {
