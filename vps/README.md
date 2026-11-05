@@ -23,6 +23,16 @@ contrato (solo cambia el método de acceso).
 Player: `hls.js` (`lowLatencyMode`) + fallback nativo Safari, sin escudo
 superpuesto en el front (lo agrega el servidor en el stream).
 
+## Actualizar (solo VPS)
+
+```bash
+./vps/update.sh [rama]   # default: main
+```
+
+Baja los cambios de GitHub (`pull --ff-only`), hace `compose pull` + `up -d`
+y chequea `/healthz`, `/` y `/vivo`. Solo toca el VPS, nunca `club-bridge`.
+Si hay cambios locales sin commitear, aborta antes de tocar nada.
+
 ## Primera vez
 ```bash
 cd vps
