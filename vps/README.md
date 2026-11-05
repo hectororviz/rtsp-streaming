@@ -7,16 +7,21 @@
 - `caddy-docker-proxy` corriendo en `caddy_net` con acceso al socket docker.
 - DNS: `streaming`, `api.streaming`, `hls.streaming` → IP del VPS.
 
-## Demo con PIN + backoffice
+## Demo con acceso + backoffice
 
-La web (`streaming.csdsoler.com.ar`) muestra el partido vigente, pide PIN y
-desbloquea el player HLS (con escudo en esquina y fullscreen). El backoffice
-está en `streaming.csdsoler.com.ar/#/admin` (token `ADMIN_TOKEN` del `.env`):
-crear/editar partidos (rival, inicio/fin de transmisión, stream-key, PIN) y
+La web (`streaming.csdsoler.com.ar`) es el portal: landing `/` (qué es,
+cómo ver, CTA) + partido en vivo en `/vivo` (alias `/partido` redirige).
+`/vivo` exige acceso: sin cookie válida muestra la caja de acceso
+(hoy PIN temporal vía `PinForm`, mañana checkout de Mercado Pago sin
+cambiar el layout). El backoffice está en `/admin` (token `ADMIN_TOKEN`
+del `.env`): crear/editar partidos (rival, inicio/fin, stream-key, PIN) y
 preview del HLS. La API solo entrega la URL del stream con cookie de acceso
 válida y dentro de la ventana `[starts_at, ends_at]`; fuera de ella el player
-muestra cuenta regresiva o "finalizada". Mercado Pago reutiliza este mismo
+muestra "todavía no empezó" o "finalizada". Mercado Pago reutiliza este mismo
 contrato (solo cambia el método de acceso).
+
+Player: `hls.js` (`lowLatencyMode`) + fallback nativo Safari, sin escudo
+superpuesto en el front (lo agrega el servidor en el stream).
 
 ## Primera vez
 ```bash
