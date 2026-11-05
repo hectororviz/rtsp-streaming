@@ -1,6 +1,8 @@
 # Binarios y build
 club-bridge/club-bridge
 vps/api/node_modules/
+vps/web/node_modules/
+vps/web/dist/
 
 # Entornos y secretos (nunca commitear reales)
 vps/.env

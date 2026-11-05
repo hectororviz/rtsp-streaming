@@ -1,13 +1,14 @@
 {
   "name": "streaming-api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Placeholder API (sera reemplazada por NestJS). Expone contrato minimo para que el compose y el CI funcionen.",
+  "description": "API streaming CSD Soler: partidos, acceso por PIN, admin. Base para Mercado Pago.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.13.1"
   }
 }

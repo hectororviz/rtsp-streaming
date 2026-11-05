@@ -1,7 +1,13 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY . .
+ARG VITE_API_BASE=https://api.streaming.csdsoler.com.ar
+ENV VITE_API_BASE=$VITE_API_BASE
+RUN npm run build
+
 FROM nginx:alpine
-# Build args inyectados por CI/compose (sin hardcodear dominios en el repo).
-ARG API_BASE=https://api.streaming.csdsoler.com.ar
-ARG HLS_BASE=https://hls.streaming.csdsoler.com.ar
-COPY public/index.html /tmp/index.html
-RUN sed -e "s#__API_BASE__#${API_BASE}#g" -e "s#__HLS_BASE__#${HLS_BASE}#g" /tmp/index.html > /usr/share/nginx/html/index.html
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

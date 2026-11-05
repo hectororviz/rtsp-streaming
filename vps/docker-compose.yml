@@ -75,6 +75,11 @@ services:
       - PORT=3000
       - DATABASE_URL=postgres://${POSTGRES_USER:-streaming}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-streaming}
       - HLS_BASE=https://hls.streaming.csdsoler.com.ar
+      - WEB_ORIGIN=https://streaming.csdsoler.com.ar
+      - ADMIN_TOKEN=${ADMIN_TOKEN:?setear en .env}
+      - COOKIE_SECURE=true
+      - SEED_PIN=${SEED_PIN:-1234}
+      - SEED_RIVAL=${SEED_RIVAL:-Rival a definir}
       - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN:-}
     depends_on:
       db: { condition: service_healthy }
@@ -90,8 +95,7 @@ services:
     build:
       context: ./web
       args:
-        API_BASE: https://api.streaming.csdsoler.com.ar
-        HLS_BASE: https://hls.streaming.csdsoler.com.ar
+        VITE_API_BASE: https://api.streaming.csdsoler.com.ar
     image: ${WEB_IMAGE:-ghcr.io/hectororviz/rtsp-streaming-web:latest}
     container_name: streaming-web
     networks:

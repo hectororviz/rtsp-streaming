@@ -108,7 +108,8 @@ En el VPS, `docker compose pull && docker compose up -d` toma `:latest`.
 
 - [x] Puente funcional (supervisión, health, systemd, docker test).
 - [x] VPS dockerizado detrás de caddy-docker-proxy + CI a GHCR.
-- [ ] API real (NestJS + Postgres + Mercado Pago + tokens de reproducción).
-- [ ] Web real (React + player + checkout).
+- [x] Demo E2E: PIN + landing CSD Soler + player HLS con escudo + backoffice `/admin`.
+- [ ] API real de pagos (Mercado Pago: checkout + webhook + grants).
+- [ ] Web final (reemplazar PIN por checkout; retener landing/player/admin).
 - [ ] WebRTC de baja latencia (`rtc.streaming.csdsoler.com.ar`).
 - [ ] Multi-cámara / multi-club (más stream-keys, mismo patrón).

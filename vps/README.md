@@ -7,6 +7,17 @@
 - `caddy-docker-proxy` corriendo en `caddy_net` con acceso al socket docker.
 - DNS: `streaming`, `api.streaming`, `hls.streaming` → IP del VPS.
 
+## Demo con PIN + backoffice
+
+La web (`streaming.csdsoler.com.ar`) muestra el partido vigente, pide PIN y
+desbloquea el player HLS (con escudo en esquina y fullscreen). El backoffice
+está en `streaming.csdsoler.com.ar/#/admin` (token `ADMIN_TOKEN` del `.env`):
+crear/editar partidos (rival, inicio/fin de transmisión, stream-key, PIN) y
+preview del HLS. La API solo entrega la URL del stream con cookie de acceso
+válida y dentro de la ventana `[starts_at, ends_at]`; fuera de ella el player
+muestra cuenta regresiva o "finalizada". Mercado Pago reutiliza este mismo
+contrato (solo cambia el método de acceso).
+
 ## Primera vez
 ```bash
 cd vps
