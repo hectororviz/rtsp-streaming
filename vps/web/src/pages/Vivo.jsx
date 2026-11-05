@@ -120,28 +120,28 @@ export default function Vivo({ onNav }) {
         {hasAccess && (streamState === "live" || streamState === "loading") ? (
           <Player ref={videoHolder} src={hlsUrl} reloadKey={reloadKey} />
         ) : hasAccess && streamState === "waiting" ? (
-          <div className="player" style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="player player--narrow">
             <div className="player-overlay">
               <h2>El partido todavía no empezó</h2>
               <p>Comienza en {cd}. Esta página se habilita sola.</p>
             </div>
           </div>
         ) : hasAccess && streamState === "ended" ? (
-          <div className="player" style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="player player--narrow">
             <div className="player-overlay">
               <h2>Transmisión finalizada</h2>
               <p>Gracias por acompañar al club.</p>
             </div>
           </div>
         ) : hasAccess ? (
-          <div className="player" style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="player player--narrow">
             <div className="player-overlay">
               <h2>No pudimos cargar la señal</h2>
               <p>Probá recargar la señal.</p>
             </div>
           </div>
         ) : (
-          <div className="player" style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="player player--narrow">
             <div className="player-overlay">
               <h2>Acá va la señal en vivo</h2>
               <p>Necesitás tu acceso del club para ver el partido.</p>

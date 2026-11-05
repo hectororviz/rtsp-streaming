@@ -23,6 +23,23 @@ contrato (solo cambia el método de acceso).
 Player: `hls.js` (`lowLatencyMode`) + fallback nativo Safari, sin escudo
 superpuesto en el front (lo agrega el servidor en el stream).
 
+## Web UI / maquetación
+
+Rutas: `/` landing, `/vivo` (alias `/partido`), `/admin`.
+Verificado con Playwright en 360 / 390 / 1280 sin `overflow-x`.
+
+- Header sticky de 56px con `safe-area-inset`; hero con `text-wrap: balance`.
+- Landing: CTA full-width en móvil, 3 cards en desktop, preview 16/9 con
+  hover scale en el botón play.
+- `/vivo`: player 16/9 centrado (`.player--narrow`, sin inline styles),
+  acciones en grid 2-col (1-col en ≤380px).
+- `/admin`: login con `.btn--red` e input `.input--token` (sin
+  `letter-spacing` de PIN); tabla dentro de `.tbl-wrap` con scroll
+  horizontal en móvil; botones con `.btn--sm` / `.btn--danger` / `.linklike`;
+  link `← Volver al sitio` (solo navegación, sin lógica).
+- Solo se tocaron clases/wrappers y `styles.css`; sin cambios de lógica,
+  API ni contrato de acceso.
+
 ## Actualizar (solo VPS)
 
 ```bash

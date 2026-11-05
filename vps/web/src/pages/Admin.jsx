@@ -81,12 +81,15 @@ export default function Admin() {
   if (!authed) {
     return (
       <div className="wrap narrow">
+        <div className="admin-topbar">
+          <a href="/">← Volver al sitio</a>
+        </div>
         <h1>Backoffice</h1>
         <form className="pin-card" onSubmit={login}>
           <h2>Token de administrador</h2>
           <div className="pin-row">
-            <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="ADMIN_TOKEN" />
-            <button type="submit">Entrar</button>
+            <input className="input--token" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="ADMIN_TOKEN" autoComplete="off" aria-label="Token de administrador" />
+            <button className="btn btn--red" type="submit">Entrar</button>
           </div>
           {error && <div className="field-error">{error}</div>}
         </form>
@@ -96,6 +99,9 @@ export default function Admin() {
 
   return (
     <div className="wrap wide">
+      <div className="admin-topbar">
+        <a href="/">← Volver al sitio</a>
+      </div>
       <div className="admin-head">
         <h1>Partidos</h1>
         <button className="linklike" onClick={() => { localStorage.removeItem(LS_KEY); setAuthed(false); setToken(""); }}>
@@ -104,6 +110,7 @@ export default function Admin() {
       </div>
       {error && <div className="alert">{error}</div>}
 
+      <div className="tbl-wrap">
       <table className="tbl">
         <thead>
           <tr><th>Partido</th><th>Inicio</th><th>Fin</th><th>Key</th><th>Estado</th><th></th></tr>
@@ -117,9 +124,9 @@ export default function Admin() {
               <td><code>{m.stream_key}</code></td>
               <td>{m.status}</td>
               <td className="row-actions">
-                <button onClick={() => setEditing(m)}>Editar</button>
-                <button onClick={() => setPreviewKey(m.stream_key)}>Preview</button>
-                <button className="danger" onClick={async () => { if (confirm("¿Eliminar?")) { await api.adminDelete(token.trim(), m.id); refresh(); } }}>
+                <button className="btn btn--ghost btn--sm" onClick={() => setEditing(m)}>Editar</button>
+                <button className="btn btn--ghost btn--sm" onClick={() => setPreviewKey(m.stream_key)}>Preview</button>
+                <button className="btn btn--danger btn--sm" onClick={async () => { if (confirm("¿Eliminar?")) { await api.adminDelete(token.trim(), m.id); refresh(); } }}>
                   Borrar
                 </button>
               </td>
@@ -127,6 +134,7 @@ export default function Admin() {
           ))}
         </tbody>
       </table>
+      </div>
 
       <h2>{editing ? `Editar #${editing.id}` : "Nuevo partido"}</h2>
       <form className="form-grid" onSubmit={save} key={editing?.id || "new"}>
@@ -136,8 +144,8 @@ export default function Admin() {
         <label>Fin*<input name="ends_at" type="datetime-local" required defaultValue={editing ? toLocalInput(editing.ends_at) : ""} /></label>
         <label>Stream key*<input name="stream_key" required defaultValue={editing?.stream_key || "test"} /></label>
         <label>PIN {editing ? "(vacío = no cambia)" : "*"}<input name="pin" type="text" autoComplete="off" placeholder={editing ? "••••" : "1234"} /></label>
-        <div>
-          <button type="submit">Guardar</button>
+        <div className="form-actions">
+          <button className="btn btn--red" type="submit">Guardar</button>
           {editing && <button type="button" className="linklike" onClick={() => setEditing(null)}>Cancelar</button>}
         </div>
       </form>
