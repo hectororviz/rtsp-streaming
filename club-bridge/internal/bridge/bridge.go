@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -52,11 +53,8 @@ func BuildArgs(c *config.Config) []string {
 		"-loglevel", ffmpegLogLevel(c.LogLevel),
 		"-rtsp_transport", c.Input.Transport,
 		"-timeout", timeoutUs,
-		// Reconnect generico (vale para input de red).
-		"-reconnect", "1",
-		"-reconnect_at_eof", "1",
-		"-reconnect_streamed", "1",
-		"-reconnect_delay_max", "10",
+		// Sin flags -reconnect*: el demuxer RTSP no los acepta ("Option not found").
+		// La reconexion la maneja el supervisor (restart con backoff).
 		"-i", c.Input.RTSPURL,
 	}
 	if c.Output.CopyCodec {
@@ -158,7 +156,7 @@ func runOnce(ctx context.Context, ffbin string, args []string, c *config.Config,
 				if strings.Contains(low, "error") || strings.Contains(low, "failed") ||
 					strings.Contains(low, "timeout") || strings.Contains(low, "connection") ||
 					c.LogLevel == "debug" {
-					logger.Printf("[ffmpeg] %s", line)
+					logger.Printf("[ffmpeg] %s", redactCredentials(line))
 				}
 			}
 		}
@@ -176,6 +174,13 @@ func runOnce(ctx context.Context, ffbin string, args []string, c *config.Config,
 	}
 	stats.LastExit.Store(fmt.Sprintf("exit=%d at=%s", code, time.Now().Format(time.RFC3339)))
 	return code
+}
+
+// redactCredentials oculta user:pass en cualquier linea (logs de ffmpeg, etc).
+var credRe = regexp.MustCompile(`://[^/@\s:]+:[^/@\s]+@`)
+
+func redactCredentials(s string) string {
+	return credRe.ReplaceAllString(s, "://***:***@")
 }
 
 func redactRTSP(raw string) string {
